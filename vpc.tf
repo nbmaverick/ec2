@@ -59,3 +59,35 @@ resource "aws_route_table_association" "a" {
   route_table_id = aws_route_table.example.id
 }
 
+resource "aws_eip" "lb" {
+  vpc = true
+}
+
+resource "aws_nat_gateway" "example" {
+  allocation_id = aws_eip.lb.id
+  subnet_id     = aws_subnet.public1.id
+
+  tags = {
+    Name = "NAT Gateway"
+  }
+
+  depends_on = [aws_internet_gateway.gw]
+}
+
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_nat_gateway.example.id
+  }
+
+  tags = {
+    Name = "Private Route Table"
+  }
+}
+
+resource "aws_route_table_association" "b" {
+  subnet_id      = aws_subnet.private1.id
+  route_table_id = aws_route_table.private.id
+}
